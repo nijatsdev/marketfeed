@@ -1,0 +1,98 @@
+version: "2"
+run:
+  concurrency: 4
+  timeout: 5m
+  tests: true
+
+issues:
+  max-issues-per-linter: 0  # 0 = unlimited (we want ALL issues)
+  max-same-issues: 50
+
+linters:
+  enable:
+    # correctness
+    - govet            # built-in checker: copylocks, printf formats, struct tags, unreachable code
+    - staticcheck      # extensive static analysis: deprecated APIs, common mistakes, simplifications
+    - unused           # unused variables, functions, types
+    - errcheck         # unchecked error returns and type assertions
+    - errorlint        # correct use of errors.Is/As and %w wrapping (Go 1.13+)
+    - nilerr           # returning nil error when err is non-nil
+    - forcetypeassert  # type assertions without comma-ok check
+    - copyloopvar      # loop variable copy issues (Go 1.22+)
+    - durationcheck    # detect time.Duration * time.Duration bugs
+    - reassign         # package-level variable reassignment
+    # style
+    - gocritic         # opinionated style: unnecessary conversions, range copies, redundant code
+    - revive           # naming conventions, exported types, stuttered package names
+    - wsl_v5           # whitespace and blank line rules for readability
+    - whitespace       # trailing whitespace, unnecessary blank lines
+    - godot            # exported-symbol comments must end with a period
+    - misspell         # common English misspellings in identifiers and comments
+    - dupword          # duplicate words in comments and strings (the the, is is)
+    - predeclared      # shadowing Go built-ins (len, cap, error)
+    - errname          # error type/var naming conventions (ErrFoo, FooError)
+    - asciicheck       # non-ASCII identifiers (prevents homoglyph/trojan source attacks)
+    # complexity
+    - gocyclo          # cyclomatic complexity threshold
+    - nestif           # deeply nested if/else chains
+    - funlen           # function length limits (lines and statements)
+    - dupl             # code duplication detection
+    # performance
+    - perfsprint       # faster alternatives to fmt.Sprintf
+    - unconvert        # unnecessary type conversions
+    - ineffassign      # assignments to variables never read
+    - goconst          # repeated literals that should be constants
+    # security & resources
+    - gosec            # security scanner: SQL injection, hardcoded credentials, weak crypto, path traversal
+    - bidichk          # dangerous bidirectional Unicode sequences (trojan source CVE-2021-42574)
+    - bodyclose        # unclosed HTTP response bodies (connection leaks)
+    - noctx            # HTTP requests missing context.Context
+    # logging
+    - sloglint         # consistent log/slog code style
+    - loggercheck      # key-value pair validation for structured loggers (zap, slog, logr)
+    # testing
+    - testifylint      # testify best practices
+    - thelper          # test helpers missing t.Helper()
+    - usetesting       # use t.Setenv/t.TempDir instead of os equivalents in tests
+    - paralleltest     # tests and subtests missing t.Parallel()
+    # modernization & meta
+    - modernize        # old patterns replaceable with newer Go features
+    - intrange         # range over integer instead of C-style loop (Go 1.22+)
+    - usestdlibvars    # use stdlib constants instead of hardcoded values
+    - nolintlint       # enforces proper //nolint directive usage
+
+  exclusions:
+    rules:
+      - linters: [revive]
+        text: "avoid .* package names"
+        path: internal/(api|metrics) # conventional package names; api = HTTP handler layer, metrics = Prometheus vars
+  settings:
+    dupl:
+      threshold: 150  # lower => stricter (tokens); 100 was too strict for test file repetition
+    errcheck:
+      check-type-assertions: true
+    funlen:
+      lines: 80
+      statements: 50
+    goconst:
+      min-len: 3
+      min-occurrences: 4
+    gocyclo:
+      min-complexity: 13 # strict; lower => stricter
+    nolintlint:
+      require-explanation: true
+      require-specific: true
+    wsl_v5:
+      allow-first-in-block: true
+      allow-whole-block: false
+      branch-max-lines: 2
+
+formatters:
+  enable:
+    - gofmt
+    - gofumpt
+  settings:
+    gofumpt:
+      extra-rules: true
+  exclusions:
+    generated: lax

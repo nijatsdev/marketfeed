@@ -1,0 +1,125 @@
+# The marketfeed symbol catalog — the single source of the instruments the
+# feed simulates. Add, edit, or remove entries here; the file is embedded at
+# build time, so rebuild and restart to apply (`make watch` does both on save).
+#
+# Only tick_size and base_price are required. Every other field is optional and
+# defaults sensibly, so entries stay short — set a field only when a symbol
+# genuinely differs from the default:
+#   description, exchange     display only (default: empty)
+#   multiplier                contract multiplier (default 1)
+#   tick_value                default tick_size × multiplier
+#   initial_margin            display only (default 0)
+#   volatility                fractional move per tick (default 0.001)
+#   spread_ticks              calm-market half-spread (default 1)
+#   tick_interval_ms          per-symbol tick cadence (default: global TICK_INTERVAL_MS)
+
+ES:
+  description: E-mini S&P 500
+  exchange: CME
+  tick_size: 0.25
+  multiplier: 50
+  base_price: 7500.00
+  volatility: 0.0008
+  tick_interval_ms: 250
+
+NQ:
+  description: E-mini Nasdaq-100
+  exchange: CME
+  tick_size: 0.25
+  multiplier: 20
+  base_price: 30000.00
+  volatility: 0.0012
+  tick_interval_ms: 300
+
+RTY:
+  description: E-mini Russell 2000
+  exchange: CME
+  tick_size: 0.10
+  multiplier: 50
+  base_price: 3000.00
+  volatility: 0.0014
+  tick_interval_ms: 1000
+
+YM:
+  description: E-mini Dow Jones
+  exchange: CBOT
+  tick_size: 1.00
+  multiplier: 5
+  base_price: 52500.00
+  volatility: 0.0007
+  tick_interval_ms: 600
+
+CL:
+  description: Crude Oil
+  exchange: NYMEX
+  tick_size: 0.01
+  multiplier: 1000
+  base_price: 78.00
+  volatility: 0.0020
+  spread_ticks: 2
+  tick_interval_ms: 400
+
+NG:
+  description: Natural Gas
+  exchange: NYMEX
+  tick_size: 0.001
+  multiplier: 10000
+  base_price: 3.000
+  volatility: 0.0030
+  spread_ticks: 2
+  tick_interval_ms: 600
+
+GC:
+  description: Gold
+  exchange: COMEX
+  tick_size: 0.10
+  multiplier: 100
+  base_price: 4000.00
+  volatility: 0.0005
+  tick_interval_ms: 500
+
+SI:
+  description: Silver
+  exchange: COMEX
+  tick_size: 0.005
+  multiplier: 5000
+  base_price: 58.000
+  volatility: 0.0010
+  spread_ticks: 2
+  tick_interval_ms: 800
+
+ZB:
+  description: 30-Year T-Bond
+  exchange: CBOT
+  tick_size: 0.03125
+  multiplier: 1000
+  base_price: 110.00
+  volatility: 0.0004
+  tick_interval_ms: 700
+
+ZN:
+  description: 10-Year T-Note
+  exchange: CBOT
+  tick_size: 0.015625
+  multiplier: 1000
+  base_price: 108.00
+  volatility: 0.0003
+  tick_interval_ms: 500
+
+6E:
+  description: Euro FX
+  exchange: CME
+  tick_size: 0.00005
+  multiplier: 125000
+  base_price: 1.15000
+  volatility: 0.0004
+  tick_interval_ms: 800
+
+6J:
+  description: Japanese Yen
+  exchange: CME
+  tick_size: 0.0000005
+  multiplier: 12500000
+  base_price: 0.0062000
+  volatility: 0.0004
+  tick_interval_ms: 1200

@@ -1,0 +1,28 @@
+# VCS and CI
+.git
+.gitignore
+.github
+
+# IDE / editor / tooling state
+.idea
+.vscode
+.gograph
+.air.toml
+
+# Build output and local artifacts
+bin/
+tmp/
+main
+*.test
+*.out
+coverage.html
+
+# Container / deploy / docs (not needed to compile)
+Dockerfile
+.dockerignore
+deploy/
+README.md
+LICENSE
+
+# OS cruft
+.DS_Store

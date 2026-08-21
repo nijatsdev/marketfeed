@@ -1,0 +1,20 @@
+# IDE specific files
+.vscode
+.idea
+
+# .env file
+.env
+
+# Build output
+bin/
+marketfeed
+
+# Output of the go coverage tool
+*.out
+coverage.html
+
+# OS X generated file
+.DS_Store
+
+# air live-reload temp dir
+tmp/
