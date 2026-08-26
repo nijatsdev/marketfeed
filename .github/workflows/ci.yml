@@ -41,6 +41,9 @@ jobs:
 
       - name: govulncheck
         uses: golang/govulncheck-action@v1
+        with:
+          go-version-file: go.mod
+          cache: false # setup-go above already restored the module cache; a second restore collides
 
   # ── test ────────────────────────────────────────────────────────────────────
   test:
