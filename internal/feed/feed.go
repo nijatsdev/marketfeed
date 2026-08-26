@@ -50,8 +50,8 @@ type symbolConfig struct {
 	interval time.Duration
 }
 
-// defaultTickInterval is used when the Feed is created with interval 0.
-const defaultTickInterval = time.Second
+// DefaultTickInterval is the cadence for symbols with no catalog value when the Feed is created with interval 0.
+const DefaultTickInterval = time.Second
 
 // seedMaxAge is the max age of a seed tick that still continues the series; older starts fresh at base price.
 const seedMaxAge = 5 * time.Minute
@@ -66,7 +66,7 @@ type symState struct {
 type Feed struct {
 	mu             sync.RWMutex
 	state          map[string]symState
-	tickInterval   time.Duration // 0 = defaultTickInterval; per-symbol overrides live in symbolConfig.interval
+	tickInterval   time.Duration // 0 = DefaultTickInterval; per-symbol overrides live in symbolConfig.interval
 	volatilityMult float64
 	readySymbols   atomic.Uint64 // distinct symbols that have emitted their first tick
 
@@ -239,7 +239,7 @@ func (f *Feed) effectiveInterval(cfg symbolConfig) time.Duration {
 	case f.tickInterval > 0:
 		return f.tickInterval
 	default:
-		return defaultTickInterval
+		return DefaultTickInterval
 	}
 }
 

@@ -2,6 +2,8 @@ package feed
 
 import (
 	"maps"
+	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -104,4 +106,62 @@ func TestEmbeddedCatalog(t *testing.T) {
 
 	zb := catalog["ZB"]
 	assert.InDelta(t, 0.03125, zb.spec.TickSize, 1e-9, "fractional tick sizes survive YAML")
+}
+
+// The tests below mutate the package catalog, so they are not parallel.
+
+func TestSetIntervalOverrides_AppliesToCatalog(t *testing.T) { //nolint:paralleltest // mutates the catalog
+	restoreCatalog(t)
+
+	require.NoError(t, SetIntervalOverrides(map[string]time.Duration{"ES": 2 * time.Second}))
+	assert.Equal(t, int64(2000), SymbolIntervalsMS()["ES"], "/status must report the override")
+
+	f := New(0, 1)
+	assert.Equal(t, 2*time.Second, f.effectiveInterval(symbols["ES"]), "the override wins over catalog and global")
+}
+
+func TestSetIntervalOverrides_RejectsAtomically(t *testing.T) { //nolint:paralleltest // mutates the catalog
+	restoreCatalog(t)
+
+	before := SymbolIntervalsMS()["ES"]
+
+	err := SetIntervalOverrides(map[string]time.Duration{"ES": time.Second, "NOPE": time.Second})
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "NOPE")
+
+	err = SetIntervalOverrides(map[string]time.Duration{"ES": 10 * time.Millisecond})
+	require.Error(t, err)
+
+	assert.Equal(t, before, SymbolIntervalsMS()["ES"], "a rejected batch must not change the catalog")
+}
+
+func TestLoadCatalogFile_ReplacesCatalog(t *testing.T) { //nolint:paralleltest // mutates the catalog
+	restoreCatalog(t)
+
+	path := filepath.Join(t.TempDir(), "symbols.yaml")
+	require.NoError(t, os.WriteFile(path, []byte("BTC:\n  tick_size: 5\n  base_price: 65000\n  tick_interval_ms: 500\n"), 0o600))
+
+	require.NoError(t, LoadCatalogFile(path))
+	assert.Equal(t, []string{"BTC"}, Symbols(), "the file replaces the built-in catalog wholesale")
+	assert.Equal(t, int64(500), SymbolIntervalsMS()["BTC"])
+
+	// Interval overrides validate against the loaded catalog, not the built-in one.
+	require.Error(t, SetIntervalOverrides(map[string]time.Duration{"ES": time.Second}))
+	require.NoError(t, SetIntervalOverrides(map[string]time.Duration{"BTC": time.Second}))
+	assert.Equal(t, int64(1000), SymbolIntervalsMS()["BTC"])
+}
+
+func TestLoadCatalogFile_InvalidLeavesCatalog(t *testing.T) { //nolint:paralleltest // mutates the catalog
+	restoreCatalog(t)
+
+	before := Symbols()
+	dir := t.TempDir()
+
+	bad := filepath.Join(dir, "bad.yaml")
+	require.NoError(t, os.WriteFile(bad, []byte("BTC:\n  base_price: 1\n"), 0o600)) // missing tick_size
+	require.Error(t, LoadCatalogFile(bad))
+
+	require.Error(t, LoadCatalogFile(filepath.Join(dir, "missing.yaml")))
+
+	assert.Equal(t, before, Symbols(), "a rejected file must not change the catalog")
 }

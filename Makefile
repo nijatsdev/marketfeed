@@ -5,7 +5,7 @@ PORT  ?= 8080
 
 # Deferred (=) so it evaluates at recipe time. Each separator space lives inside its
 # $(if ...) so it disappears with the assignment; unset vars leave no residue at all.
-APP_ENV = PORT=$(PORT)$(if $(TICK_INTERVAL_MS), TICK_INTERVAL_MS=$(TICK_INTERVAL_MS))$(if $(VOLATILITY_MULTIPLIER), VOLATILITY_MULTIPLIER=$(VOLATILITY_MULTIPLIER))$(if $(REDIS_URL), REDIS_URL=$(REDIS_URL))
+APP_ENV = PORT=$(PORT)$(if $(TICK_INTERVAL_MS), TICK_INTERVAL_MS=$(TICK_INTERVAL_MS))$(if $(VOLATILITY_MULTIPLIER), VOLATILITY_MULTIPLIER=$(VOLATILITY_MULTIPLIER))$(if $(REDIS_URL), REDIS_URL=$(REDIS_URL))$(if $(SYMBOLS_FILE), SYMBOLS_FILE=$(SYMBOLS_FILE))
 
 .DEFAULT_GOAL := help
 
@@ -20,7 +20,7 @@ help:
 build: ## compile binary to bin/marketfeed
 	@go build -trimpath -ldflags="-s -w" -o bin/marketfeed .
 
-run: ## run locally; accepts PORT, TICK_INTERVAL_MS, VOLATILITY_MULTIPLIER, REDIS_URL
+run: ## run locally; accepts PORT, TICK_INTERVAL_MS, VOLATILITY_MULTIPLIER, REDIS_URL, SYMBOLS_FILE
 	@$(APP_ENV) go run .
 
 watch: ## live reload with air; accepts the same vars as run

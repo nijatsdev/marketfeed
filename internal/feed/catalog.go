@@ -4,6 +4,8 @@ import (
 	_ "embed"
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"time"
@@ -16,7 +18,7 @@ import (
 //go:embed symbols.yaml
 var catalogYAML []byte
 
-// symbols is the active catalog. Set once at init and immutable afterwards, so reads are lock-free.
+// symbols is the active catalog. Set during startup, before any Feed exists, and immutable afterwards, so reads are lock-free.
 var symbols map[string]symbolConfig
 
 func init() {
@@ -26,6 +28,46 @@ func init() {
 	}
 
 	symbols = catalog
+}
+
+// LoadCatalogFile replaces the built-in catalog with the file at path (same schema as symbols.yaml).
+// Call before any Feed exists; an invalid file leaves the current catalog in place.
+func LoadCatalogFile(path string) error {
+	raw, err := os.ReadFile(filepath.Clean(path))
+	if err != nil {
+		return fmt.Errorf("read catalog: %w", err)
+	}
+
+	catalog, err := parseCatalog(raw)
+	if err != nil {
+		return fmt.Errorf("catalog %s: %w", path, err)
+	}
+
+	symbols = catalog
+
+	return nil
+}
+
+// SetIntervalOverrides replaces the tick cadence of the given symbols, validating the whole batch before
+// applying any. Call before any Feed exists; a rejected batch leaves the catalog untouched.
+func SetIntervalOverrides(overrides map[string]time.Duration) error {
+	for sym, d := range overrides {
+		if _, ok := symbols[sym]; !ok {
+			return fmt.Errorf("unknown symbol %q (catalog has %v)", sym, Symbols())
+		}
+
+		if d < MinTickIntervalMS*time.Millisecond {
+			return fmt.Errorf("symbol %s: tick interval must be >= %dms, got %s", sym, MinTickIntervalMS, d)
+		}
+	}
+
+	for sym, d := range overrides {
+		cfg := symbols[sym]
+		cfg.interval = d
+		symbols[sym] = cfg
+	}
+
+	return nil
 }
 
 // symbolYAML is the file-facing shape of one catalog entry. Only tick_size and base_price are required.
@@ -50,8 +92,8 @@ const (
 	defaultVolatility  = 0.001
 	defaultSpreadTicks = 1
 
-	// minTickIntervalMS floors a per-symbol cadence; anything faster is a typo, not intent.
-	minTickIntervalMS = 50
+	// MinTickIntervalMS floors every cadence, catalog or env; anything faster is a typo, not intent.
+	MinTickIntervalMS = 50
 )
 
 // symbolNameRe bounds catalog keys, which become URL path segments, Redis channel names, and Prometheus labels.
@@ -102,8 +144,8 @@ func (e symbolYAML) toConfig(name string) (symbolConfig, error) {
 		return symbolConfig{}, fmt.Errorf("symbol %s: volatility and spread_ticks must be >= 0", name)
 	}
 
-	if e.TickIntervalMS < 0 || (e.TickIntervalMS > 0 && e.TickIntervalMS < minTickIntervalMS) {
-		return symbolConfig{}, fmt.Errorf("symbol %s: tick_interval_ms must be 0 (global) or >= %dms", name, minTickIntervalMS)
+	if e.TickIntervalMS < 0 || (e.TickIntervalMS > 0 && e.TickIntervalMS < MinTickIntervalMS) {
+		return symbolConfig{}, fmt.Errorf("symbol %s: tick_interval_ms must be 0 (global) or >= %dms", name, MinTickIntervalMS)
 	}
 
 	e.applyDefaults()

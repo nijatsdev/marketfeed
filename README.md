@@ -176,9 +176,10 @@ Defined in [internal/feed/symbols.yaml](internal/feed/symbols.yaml) — the defa
 | Variable | Default | Description |
 | --- | --- | --- |
 | `PORT` | `8080` | HTTP and WebSocket listen port |
-| `TICK_INTERVAL_MS` | `1000` | Global milliseconds between price ticks (per-symbol overrides live in the catalog — see below) |
+| `TICK_INTERVAL_MS` | _(catalog, else 1000)_ | Tick cadence in ms: a bare number applies to every symbol, `SYM:ms` entries to one, e.g. `1000,NQ:300` — see [Custom symbols](#custom-symbols) |
 | `VOLATILITY_MULTIPLIER` | `1.0` | Scale volatility across all symbols |
 | `REDIS_URL` | _(disabled)_ | Enables pub/sub mirroring, snapshot hash, and leader election |
+| `SYMBOLS_FILE` | _(built-in catalog)_ | Path to a YAML catalog (same schema as `symbols.yaml`) that replaces the built-in one at startup |
 
 ```bash
 make run TICK_INTERVAL_MS=100 REDIS_URL=redis://localhost:6379
@@ -186,7 +187,7 @@ make run TICK_INTERVAL_MS=100 REDIS_URL=redis://localhost:6379
 
 ### Custom symbols
 
-The symbol catalog lives in one file: [internal/feed/symbols.yaml](internal/feed/symbols.yaml). Add, edit, or remove entries there — it is embedded at build time, and `make watch` rebuilds on save, so editing it feels like hot reload. A minimal entry needs just a tick size and a starting price:
+The symbol catalog lives in one file: [internal/feed/symbols.yaml](internal/feed/symbols.yaml). Add, edit, or remove entries there — it is embedded at build time, and `make watch` rebuilds on save, so editing it feels like hot reload. To swap the catalog without rebuilding, point `SYMBOLS_FILE` at a YAML file with the same schema (a mounted ConfigMap, for instance); it replaces the built-in list wholesale and is validated with the same rules. A minimal entry needs just a tick size and a starting price:
 
 ```yaml
 BTC:
@@ -197,7 +198,7 @@ BTC:
   volatility: 0.002    # optional: fractional move per tick (default 0.001)
 ```
 
-A `tick_interval_ms` on an entry overrides the global `TICK_INTERVAL_MS` for that symbol — the built-in catalog sets one per symbol so contracts tick at different cadences (ES/NQ fastest, thinner contracts slower). Changes apply on restart; with Redis enabled, prices and session stats survive the restart, so a catalog edit doesn't reset the running series.
+Each entry's `tick_interval_ms` sets that contract's cadence — the built-in catalog gives every symbol its own (ES/NQ fastest, thinner contracts slower). `TICK_INTERVAL_MS` adjusts cadences at runtime without touching the file: a bare number applies to every symbol, `SYM:ms` entries to single ones, and they combine — `TICK_INTERVAL_MS=1000,NQ:300` runs everything at 1s except NQ. Precedence, most specific first: `SYM:ms`, then the bare number, then the catalog's `tick_interval_ms`, then 1000ms; `/status` reports the result per symbol. Changes apply on restart; with Redis enabled, prices and session stats survive the restart, so a catalog edit doesn't reset the running series.
 
 ---
 
